@@ -21,10 +21,12 @@ check23(){
     for bucket in $CLOUDTRAILBUCKET;do
       CLOUDTRAILBUCKET_HASALLPERMISIONS=$($AWSCLI s3api get-bucket-acl --bucket $bucket --query 'Grants[?Grantee.URI==`http://acs.amazonaws.com/groups/global/AllUsers`]' $PROFILE_OPT --region $REGION --output text 2>&1)
       if [[ $(echo "$CLOUDTRAILBUCKET_HASALLPERMISIONS" | grep AccessDenied) ]]; then
-        textFail "Access Denied Trying to Get Bucket Acl for $bucket"
+        textInfo "Access Denied Trying to Get Bucket Acl for $bucket"
         continue
       fi
       if [[ $CLOUDTRAILBUCKET_HASALLPERMISIONS ]]; then
+        textFail "check your $bucket CloudTrail bucket ACL and Policy!"
+      elif ! curl -s -o /dev/null -D- https://${bucket}.s3.amazonaws.com/foo | head -n 1 | egrep -q '(401|403)'
         textFail "check your $bucket CloudTrail bucket ACL and Policy!"
       else
         textPass "Bucket $bucket is set correctly"
