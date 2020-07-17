@@ -19,19 +19,20 @@ check119(){
     EC2_DATA=$($AWSCLI ec2 describe-instances $PROFILE_OPT --region $regx --query 'Reservations[].Instances[].[InstanceId, IamInstanceProfile.Arn, State.Name]')
     EC2_DATA=$(echo $EC2_DATA | jq '.[]|{InstanceId: .[0], ProfileArn: .[1], StateName: .[2]}')
     INSTANCE_LIST=$(echo $EC2_DATA | jq -r '.InstanceId')
-    if [[ $INSTANCE_LIST ]]; then
-      for instance in $INSTANCE_LIST; do
-        STATE_NAME=$(echo $EC2_DATA | jq -r --arg i "$instance" 'select(.InstanceId==$i)|.StateName')
-        if [[ $STATE_NAME != "terminated" ]]; then
-          PROFILEARN=$(echo $EC2_DATA | jq -r --arg i "$instance" 'select(.InstanceId==$i)|.ProfileArn')
-          if [[ $PROFILEARN == "null" ]]; then
-            textFail "$regx: Instance $instance not associated with an instance role." $regx
-          else
-            textPass "$regx: Instance $instance associated with role ${PROFILEARN##*/}." $regx
-          fi
+    NON_TERMINATED_INSTANCES=0
+    for instance in $INSTANCE_LIST; do
+      STATE_NAME=$(echo $EC2_DATA | jq -r --arg i "$instance" 'select(.InstanceId==$i)|.StateName')
+      if [[ $STATE_NAME != "terminated" ]]; then
+        ((NON_TERMINATED_INSTANCES++))
+        PROFILEARN=$(echo $EC2_DATA | jq -r --arg i "$instance" 'select(.InstanceId==$i)|.ProfileArn')
+        if [[ $PROFILEARN == "null" ]]; then
+          textFail "$regx: Instance $instance not associated with an instance role." $regx
+        else
+          textPass "$regx: Instance $instance associated with role ${PROFILEARN##*/}." $regx
         fi
-      done
-    else
+      fi
+    done
+    if [[ $NON_TERMINATED_INSTANCES -gt 0 ]]; then
       textInfo "$regx: No EC2 instances found" $regx
     fi
   done
