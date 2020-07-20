@@ -8,10 +8,12 @@
 # You should have received a copy of the license along with this
 # work. If not, see <http://creativecommons.org/licenses/by-nc-sa/4.0/>.
 
-CHECK_ID_check23="2.3,2.03"
+CHECK_ID_check23="2.3"
 CHECK_TITLE_check23="[check23] Ensure the S3 bucket CloudTrail logs to is not publicly accessible (Scored)"
 CHECK_SCORED_check23="SCORED"
 CHECK_TYPE_check23="LEVEL1"
+CHECK_ASFF_TYPE_check23="Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+CHECK_ASFF_RESOURCE_TYPE_check23="AwsS3Bucket"
 CHECK_ALTERNATE_check203="check23"
 
 check23(){
@@ -23,7 +25,7 @@ check23(){
       if [[ $(echo "$CLOUDTRAILBUCKET_HASALLPERMISIONS" | grep AccessDenied) ]]; then
         textInfo "Access Denied Trying to Get Bucket Acl for $bucket"
         # If the ACL cannot be checked, see if bucket is actually publicly accessible
-        if [[ ! $(curl -s -o /dev/null -w "%{http_code}" https://${bucket}.s3.amazonaws.com/foo) =~ 401|403 ]]
+        if [[ ! $(curl -s -o /dev/null -w "%{http_code}" https://${bucket}.s3.amazonaws.com/foo) =~ 401|403 ]]; then
           textFail "check your $bucket CloudTrail bucket ACL and Policy!"
         else
           continue
