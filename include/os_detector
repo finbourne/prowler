@@ -191,18 +191,6 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   else
     how_older_from_today() {
       bsd_how_older_from_today "$1"
-  timestamp_to_date()
-    {
-      # remove fractions of a second
-      TIMESTAMP_TO_CONVERT=$(echo $1 | cut -f1 -d".")
-      if [[ $TIMESTAMP_TO_CONVERT =~ ^\d+$ ]]; then
-        # Timestamp is properly rendered as unix epoch
-        OUTPUT_DATE=$(date -r $TIMESTAMP_TO_CONVERT +%Y-%m-%d)
-      else
-        # Timestamp is rendered human-readably, do a different conversion
-        OUTPUT_DATE=$(date -jf %Y-%m-%dT%H:%M:%S $TIMESTAMP_TO_CONVERT +%Y-%m-%d)
-      fi
-      echo $OUTPUT_DATE
     }
     timestamp_to_date() {
       bsd_timestamp_to_date "$1"
