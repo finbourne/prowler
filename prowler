@@ -91,14 +91,12 @@ USAGE:
       -w                  whitelist file. See whitelist_sample.txt for reference and format
                             (i.e.: whitelist_sample.txt)
       -V                  show version number & exit
-      -B <buckets>        a regex for buckets to exclude from check extra718
-                            (i.e.: '^bucket-name-prefix.*\|other-prefix-for-a-bucket.*$')
       -h                  this help
   "
   exit
 }
 
-while getopts ":hlLkqp:r:c:g:f:m:M:E:x:enbVsSI:A:R:T:w:B:" OPTION; do
+while getopts ":hlLkqp:r:c:g:f:m:M:E:x:enbVsSI:A:R:T:w:" OPTION; do
    case $OPTION in
      h )
         usage
@@ -178,9 +176,6 @@ while getopts ":hlLkqp:r:c:g:f:m:M:E:x:enbVsSI:A:R:T:w:B:" OPTION; do
         ;;
      w )
         WHITELIST_FILE=$OPTARG
-        ;;
-     B )
-        EXTRA718_EXCLUDED_BUCKETS=$OPTARG
         ;;
      : )
         echo ""
