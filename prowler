@@ -85,17 +85,12 @@ USAGE:
                             (i.e.: 123456789012)
       -R                  role name to assume in the account, requires -A and -T
                             (i.e.: ProwlerRole)
-<<<<<<< HEAD
       -T                  session duration given to that role credentials in seconds, default 1h (3600) recommended 12h, requires -R and -T
                             (i.e.: 43200)
       -I                  External ID to be used when assuming roles (not mandatory), requires -A and -R
       -w                  whitelist file. See whitelist_sample.txt for reference and format
                             (i.e.: whitelist_sample.txt)
       -V                  show version number & exit
-=======
-      -T                  session durantion given to that role credentials in seconds, default 1h (3600) recommended 12h, requires -R and -T
-                            (i.e.: 43200) 
->>>>>>> 24e7a06... Allow user to exclude buckets from check extra718
       -B <buckets>        a regex for buckets to exclude from check extra718
                             (i.e.: '^bucket-name-prefix.*\|other-prefix-for-a-bucket.*$')
       -h                  this help
@@ -103,11 +98,7 @@ USAGE:
   exit
 }
 
-<<<<<<< HEAD
 while getopts ":hlLkqp:r:c:g:f:m:M:E:x:enbVsSI:A:R:T:w:B:" OPTION; do
-=======
-while getopts ":hlLkqp:r:c:g:f:m:M:E:enbVsx:A:R:T:B:" OPTION; do
->>>>>>> 24e7a06... Allow user to exclude buckets from check extra718
    case $OPTION in
      h )
         usage
@@ -185,12 +176,9 @@ while getopts ":hlLkqp:r:c:g:f:m:M:E:enbVsx:A:R:T:B:" OPTION; do
      T )
         SESSION_DURATION_TO_ASSUME=$OPTARG
         ;;
-<<<<<<< HEAD
      w )
         WHITELIST_FILE=$OPTARG
         ;;
-=======
->>>>>>> 24e7a06... Allow user to exclude buckets from check extra718
      B )
         EXTRA718_EXCLUDED_BUCKETS=$OPTARG
         ;;
