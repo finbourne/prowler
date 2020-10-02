@@ -32,7 +32,7 @@ OPTRED="[1;31m"
 OPTNORMAL="[0;39m"
 
 # Set the defaults variables
-PROWLER_VERSION=2.3.0RC2
+PROWLER_VERSION=2.3.0RC4
 PROWLER_DIR=$(dirname "$0")
 
 REGION=""
@@ -63,11 +63,11 @@ USAGE:
       -c <check_id>       specify one or multiple check ids separated by commas, to see all available checks use "-l" option
                             (i.e.: "check11" for check 1.1 or "extra71,extra72" for extra check 71 and extra check 72)
       -g <group_id>       specify a group of checks by id, to see all available group of checks use "-L"
-                            (i.e.: "check3" for entire section 3, "level1" for CIS Level 1 Profile Definitions or "forensics-ready")
+                            (i.e.: "group3" for entire section 3, "cislevel1" for CIS Level 1 Profile Definitions or "forensics-ready")
       -f <filterregion>   specify an AWS region to run checks against
                             (i.e.: us-west-1)
       -m <maxitems>       specify the maximum number of items to return for long-running requests (default: 100)
-      -M <mode>           output mode: text (default), mono, json, json-asff, junit-xml, csv. They can be used combined comma separated.
+      -M <mode>           output mode: text (default), mono, html, json, json-asff, junit-xml, csv. They can be used combined comma separated.
                             (separator is ","; data is on stdout; progress on stderr).
       -k                  keep the credential report
       -n                  show check numbers to sort easier
@@ -98,7 +98,7 @@ USAGE:
   exit
 }
 
-while getopts ":hlLkqp:r:c:g:f:m:M:E:enbVsSxI:A:R:T:w:B:" OPTION; do
+while getopts ":hlLkqp:r:c:g:f:m:M:E:x:enbVsSI:A:R:T:w:B:" OPTION; do
    case $OPTION in
      h )
         usage
@@ -276,8 +276,10 @@ for i in "${!GROUP_TITLE[@]}"; do
     TOTAL_CHECKS+=("$CHECK_ID_$j")
   done
 done
-# Remove duplicates whilst preserving the order of checks, and store the result as an array
-TOTAL_CHECKS=($(echo "${TOTAL_CHECKS[*]}" | tr ' ' '\n' | awk '!seen[$0]++'))
+# Remove duplicates, sort checks numerically, and store the result as an array
+# Note: the sort mechanism relies on the fact that the check ID prefixes 'check' and 'extra' are both 5 characters long.
+#       6th character is the section number, 7th character onwards is the individual ID (e.g. check110 = check 1 10)
+TOTAL_CHECKS=($(echo "${TOTAL_CHECKS[*]}" | tr ' ' '\n' | awk '!seen[$0]++' | sort -k 1.6,1.6n -k 1.7n))
 
 # Function to show the title of the check, and optionally which group(s) it belongs to
 # using this way instead of arrays to keep bash3 (osx) and bash4(linux) compatibility
@@ -320,11 +322,20 @@ execute_check() {
   # See if this check defines an ASFF Type, if so, use this, falling back to a sane default
   # For a list of Types, see: https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format.html#securityhub-findings-format-type-taxonomy
   local asff_type_var=CHECK_ASFF_TYPE_$1
+
+  local severity_var=CHECK_SEVERITY_$1
+  
+  CHECK_SEVERITY="${!severity_var}"
+
+  CHECK_ID="$1"
+
   ASFF_TYPE="${!asff_type_var:-Software and Configuration Checks}"
   # See if this check defines an ASFF Resource Type, if so, use this, falling back to a sane default
   # For a list of Resource Types, see: https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format.html#asff-resources
   local asff_resource_type_var=CHECK_ASFF_RESOURCE_TYPE_$1
+
   ASFF_RESOURCE_TYPE="${!asff_resource_type_var:-AwsAccount}"
+
   # Generate the credential report, only if it is group1 related which checks we
   # run so that the checks can safely assume it's available
   # set the custom ignores list for this check
@@ -346,6 +357,10 @@ execute_check() {
     if is_junit_output_enabled; then
       finalise_junit_check_output "$1"
     fi
+
+    if [[ "$SEND_TO_SECURITY_HUB" -eq 1 ]]; then
+      resolveSecurityHubPreviousFails "$1"
+    fi
   else
     # Check to see if this is a real check
     local check_id_var=CHECK_ID_$1
@@ -363,9 +378,15 @@ execute_check() {
       fi
       # Execute the check
       IGNORES="${ignores}" CHECK_NAME="$1" $1
+
       if is_junit_output_enabled; then
         finalise_junit_check_output "$1"
       fi
+
+      if [[ "$SEND_TO_SECURITY_HUB" -eq 1 ]]; then
+        resolveSecurityHubPreviousFails "$1"
+      fi
+
     else
       textFail "ERROR! Use a valid check name (i.e. check41 or extra71)";
       exit $EXITCODE
@@ -398,11 +419,8 @@ execute_group() {
 
 # Function to execute group by name
 execute_group_by_id() {
-  if [ "${GROUP_ID[$1]}" == "group1" ]; then
-    genCredReport
-    saveReport
-  fi
-	for i in "${!GROUP_ID[@]}"; do
+  
+  	for i in "${!GROUP_ID[@]}"; do
 		if [ "${GROUP_ID[$i]}" == "$1" ]; then
 			execute_group ${i} $2
 		fi
@@ -416,7 +434,7 @@ execute_all() {
       GROUP_RUN_BY_DEFAULT[7]='N'
     fi
     if [ "${GROUP_RUN_BY_DEFAULT[$i]}" == "Y" ]; then
-		  execute_group $i
+      execute_group $i
     fi
 	done
 }
@@ -513,6 +531,9 @@ fi
 
 # Gather account data / test aws cli connectivity
 getWhoami
+if [[ $ACCOUNT_TO_ASSUME ]]; then
+  assume_role
+fi
 
 # Execute group of checks if called with -g
 if [[ $GROUP_ID_READ ]];then
@@ -556,6 +577,7 @@ if [[ $CHECK_ID ]];then
 fi
 
 execute_all
+
 if [[ "${MODES[@]}" =~ "html" ]]; then
   addHtmlFooter >> ${OUTPUT_FILE_NAME}.$EXTENSION_HTML
 fi
