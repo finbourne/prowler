@@ -27,7 +27,8 @@ extra726(){
     return
   fi
 
-  function run-ta-check() {
+  for checkid in $TA_CHECKS_ID; do
+    TA_CHECKS_NAME=$($AWSCLI support describe-trusted-advisor-checks --language en $PROFILE_OPT --region us-east-1 --query "checks[?id==\`$checkid\`].{name:name}[*]" --output text)
     QUERY_TA_CHECK_RESULT=$($AWSCLI support describe-trusted-advisor-check-result --check-id $checkid --language en $PROFILE_OPT --region us-east-1 --query 'result.status' --output text)
     # Possible results - https://docs.aws.amazon.com/cli/latest/reference/support/describe-trusted-advisor-check-result.html
     case "$QUERY_TA_CHECK_RESULT" in
@@ -47,24 +48,5 @@ extra726(){
         textFail "Trusted Advisor check $TA_CHECKS_NAME is in unknown state $QUERY_TA_CHECK_RESULT"
         ;;
     esac
-  }
-
-  function ta-check-is-excluded() {
-    CHECK=$1
-    IFS=',' read -ra EXCLUDED <<< "$EXCLUDE_TA_CHECKS"
-    for EXCLUDE in "${EXCLUDED[@]}"; do
-      if [[ "$EXCLUDE" == "$CHECK" ]]; then
-        echo "true"
-      fi
-    done
-  }
-
-  for checkid in $TA_CHECKS_ID; do
-    TA_CHECKS_NAME=$($AWSCLI support describe-trusted-advisor-checks --language en $PROFILE_OPT --region us-east-1 --query "checks[?id==\`$checkid\`].{name:name}[*]" --output text)
-    if [[ $(ta-check-is-excluded "$TA_CHECKS_NAME") == "true" ]]; then
-      textInfo "Ignoring Trusted Advisor check $TA_CHECKS_NAME"
-    else
-      run-ta-check
-    fi
   done
 }
