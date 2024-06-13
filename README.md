@@ -1,3 +1,5 @@
+![LUSID_by_Finbourne](./resources/Finbourne_Logo_Teal.svg)
+
 # Prowler: AWS CIS Benchmark Tool
 
 ## Table of Contents
